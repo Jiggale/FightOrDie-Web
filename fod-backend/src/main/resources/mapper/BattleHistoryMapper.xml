@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fod.mapper.BattleHistoryMapper">
+
+    <insert id="insertBattleHistory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO battle_history
+            (session_id, player_name, monster_name, player_won, exp_gained, gold_gained, damage_dealt, damage_taken, turns)
+        VALUES
+            (#{sessionId}, #{playerName}, #{monsterName}, #{playerWon}, #{expGained}, #{goldGained}, #{damageDealt}, #{damageTaken}, #{turns})
+    </insert>
+
+    <select id="findByPlayerName" resultType="BattleHistory">
+        SELECT * FROM battle_history
+        WHERE player_name = #{playerName}
+        ORDER BY finished_at DESC
+        LIMIT 20
+    </select>
+
+    <select id="findPlayerStats" resultType="PlayerStats">
+        SELECT * FROM player_stats WHERE player_name = #{playerName}
+    </select>
+
+    <insert id="upsertPlayerStats" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO player_stats
+            (player_name, total_battles, total_wins, total_exp, total_gold, monsters_killed, highest_level, last_battle_at)
+        VALUES
+            (#{playerName}, #{totalBattles}, #{totalWins}, #{totalExp}, #{totalGold}, #{monstersKilled}, #{highestLevel}, #{lastBattleAt})
+        ON DUPLICATE KEY UPDATE
+            total_battles = total_battles + VALUES(total_battles),
+            total_wins = total_wins + VALUES(total_wins),
+            total_exp = total_exp + VALUES(total_exp),
+            total_gold = total_gold + VALUES(total_gold),
+            monsters_killed = monsters_killed + VALUES(monsters_killed),
+            highest_level = GREATEST(highest_level, VALUES(highest_level)),
+            last_battle_at = VALUES(last_battle_at)
+    </insert>
+
+    <select id="findTopByGold" resultType="PlayerStats">
+        SELECT * FROM player_stats
+        ORDER BY total_gold DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

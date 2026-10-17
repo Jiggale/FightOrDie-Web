@@ -1,0 +1,39 @@
+### 不纳入本仓库的内容 ###
+
+# AI 助手内部数据（本地保留，不入库）
+.codebuddy/
+
+# 原版控制台项目（仅本地保留，作为重构前参考）
+/Fight Or Die/
+
+# 根目录遗留文件（fod-backend 内已有 init.sql）
+/init.sql
+/create-tables.sql
+/qc
+/测试.docx
+
+### IDE ###
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+
+### 构建产物与依赖 ###
+target/
+build/
+node_modules/
+dist/
+
+### 日志与临时文件 ###
+*.log
+logs/
+.DS_Store
+
+### 敏感配置（禁止提交）###
+application-local.properties
+.env
+.env.local

@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 24% 8%;
+    --foreground: 210 40% 98%;
+  }
+
+  body {
+    @apply bg-ink-950 text-slate-100 font-sans antialiased;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(244, 63, 94, 0.12), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(99, 102, 241, 0.12), transparent 45%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3 {
+    @apply font-display tracking-wide;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl;
+  }
+
+  .game-btn {
+    @apply px-5 py-3 rounded-xl font-semibold transition-all duration-200 
+           hover:scale-105 active:scale-95 cursor-pointer select-none;
+  }
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(244, 63, 94, 0.5);
+  border-radius: 4px;
+}
