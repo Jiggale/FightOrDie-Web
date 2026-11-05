@@ -70,8 +70,9 @@ public class CombatSystem {
             return messages;
         }
 
-        // 怪物AI行动
-        CombatResult aiResult = AIActionStrategy.executeAI(monster, player);
+        // 怪物AI行动 —— 一个完整回合内只执行一次；策略序号 2 表示本回合处于防御姿态
+        boolean defending = strategyIndex == 2;
+        CombatResult aiResult = AIActionStrategy.executeAI(monster, player, defending);
         messages.add(aiResult.getDescription());
 
         // 检查玩家死亡
