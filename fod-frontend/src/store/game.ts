@@ -5,6 +5,7 @@ import {
   fleeBattle,
   getLeaderboard,
   type BattleCreated,
+  type BattleOutcome,
   type BattleState,
   type BurningState,
   type PlayerStats,
@@ -18,6 +19,7 @@ export const useGameStore = defineStore('game', {
     monster: null as BattleState['monster'] | null,
     monsterMaxHealth: 1 as number,
     burning: { flame: 0, maxFlame: 6, ember: 0, burnPerTurn: 1 } as BurningState,
+    battleOutcome: 'ONGOING' as BattleOutcome,
     strategies: {} as Record<number, string>,
     battleLog: [] as string[],
     combatEnded: false,
@@ -39,7 +41,9 @@ export const useGameStore = defineStore('game', {
         this.monster = created.monster
         this.monsterMaxHealth = created.monster.health || 1
         this.burning = created.burning ?? this.burning
-        this.player = null
+        this.battleOutcome = created.battleOutcome ?? 'ONGOING'
+        // 第一帧就使用后端返回的玩家数据，避免等待第一次行动
+        this.player = created.player
         this.battleLog = ['遭遇 ' + created.monster.name + '！战斗开始！']
         this.combatEnded = false
         this.playerWon = false
@@ -76,6 +80,7 @@ export const useGameStore = defineStore('game', {
       this.player = state.player
       this.monster = state.monster
       this.burning = state.burning ?? this.burning
+      this.battleOutcome = state.battleOutcome ?? this.battleOutcome
       this.combatEnded = state.combatEnded
       this.playerWon = state.playerWon
       this.turn = state.turn
@@ -92,6 +97,7 @@ export const useGameStore = defineStore('game', {
       this.sessionId = ''
       this.player = null
       this.monster = null
+      this.battleOutcome = 'ONGOING'
       this.battleLog = []
     },
   },

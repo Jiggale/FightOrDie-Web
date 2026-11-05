@@ -18,16 +18,52 @@ const monsterHpPct = computed(() => {
   return Math.max(0, Math.round((store.monster.health / store.monsterMaxHealth) * 100))
 })
 
-const isExtinguished = computed(() => store.burning.flame <= 0)
+const isExtinguished = computed(() => store.battleOutcome === 'EXTINGUISHED')
+const isVictory = computed(() => store.battleOutcome === 'VICTORY')
 
 const endingLabel = computed(() => {
-  if (store.playerWon) return '胜利！'
-  return isExtinguished.value ? '燃尽' : '战败'
+  switch (store.battleOutcome) {
+    case 'VICTORY':
+      return '胜利'
+    case 'DEFEATED':
+      return '战败'
+    case 'EXTINGUISHED':
+      return '燃尽'
+    case 'FLED':
+      return '已撤退'
+    default:
+      return ''
+  }
 })
 
 const endingIcon = computed(() => {
-  if (store.playerWon) return '🏆'
-  return isExtinguished.value ? '🔥' : '💀'
+  switch (store.battleOutcome) {
+    case 'VICTORY':
+      return '🏆'
+    case 'DEFEATED':
+      return '💀'
+    case 'EXTINGUISHED':
+      return '🔥'
+    case 'FLED':
+      return '🏃'
+    default:
+      return ''
+  }
+})
+
+const endingDescription = computed(() => {
+  switch (store.battleOutcome) {
+    case 'VICTORY':
+      return '你击败了 ' + (store.monster?.name ?? '敌人') + '，荣耀归于你的名字。'
+    case 'DEFEATED':
+      return '你倒下了，但传说仍在继续。'
+    case 'EXTINGUISHED':
+      return '燃烧耗尽，你化作了灰烬。'
+    case 'FLED':
+      return '你脱离了战斗，活着离开了这里。'
+    default:
+      return ''
+  }
 })
 
 const actions = [
@@ -184,18 +220,12 @@ async function rematch() {
     >
       <div class="glass-panel p-10 text-center max-w-md animate-float-up">
         <div class="text-6xl mb-4">{{ endingIcon }}</div>
-        <h2 class="text-3xl font-bold mb-2" :class="store.playerWon ? 'text-emerald-400' : 'text-brand-400'">
+        <h2 class="text-3xl font-bold mb-2" :class="isVictory ? 'text-emerald-400' : 'text-brand-400'">
           {{ endingLabel }}
         </h2>
-        <p class="text-slate-300 mb-4">
-          {{ store.playerWon
-            ? '你击败了 ' + store.monster?.name + '，荣耀归于你的名字。'
-            : isExtinguished
-              ? '燃烧耗尽，你化作了灰烬。'
-              : '你倒下了，但传说仍在继续。' }}
-        </p>
+        <p class="text-slate-300 mb-4">{{ endingDescription }}</p>
         <div class="mb-6 space-y-1 text-sm">
-          <p v-if="store.playerWon" class="text-amber-300">获得余烬 +5</p>
+          <p v-if="isVictory" class="text-amber-300">获得余烬 +5</p>
           <p class="text-slate-400">当前燃烧 {{ store.burning.flame }}/{{ store.burning.maxFlame }}</p>
           <p class="text-slate-400">当前余烬 {{ store.burning.ember }}</p>
         </div>
