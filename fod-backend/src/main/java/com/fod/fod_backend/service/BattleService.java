@@ -22,31 +22,23 @@ public class BattleService {
     private final ConcurrentHashMap<String, GameSession> sessions = new ConcurrentHashMap<>();
     private final StatsService statsService;
 
-    private static final List<Monster> MONSTER_POOL = List.of(
-            EntityFactory.createGoblin(),
-            EntityFactory.createCaveSpider(),
-            EntityFactory.createSkeleton()
-    );
-
     public BattleService(StatsService statsService) {
         this.statsService = statsService;
     }
 
+    /**
+     * 创建一场 V0 验证战斗。
+     * 敌人固定为「夺烬者」：HP 24 / 攻击 4 / 防御 2，用于验证燃烧与余烬闭环。
+     */
     public GameSession createBattle(String playerName) {
-        Monster template = MONSTER_POOL.get(new Random().nextInt(MONSTER_POOL.size()));
         Monster monster = new Monster.Builder()
-                .name(template.getName())
-                .health(template.getHealth())
-                .attack(template.getAttack())
-                .defense(template.getDefense())
-                .level(template.getLevel())
-                .exp(template.getExperienceReward())
-                .gold(template.getGoldReward())
-                .aiType(template.getAiType())
+                .name("夺烬者")
+                .health(24)
+                .attack(4)
+                .defense(2)
+                .level(1)
+                .aiType(Monster.AIType.AGGRESSIVE)
                 .build();
-        for (var drop : template.getDropTable()) {
-            monster.getDropTable().add(drop);
-        }
 
         Player player = EntityFactory.createDefaultPlayer(playerName);
         CombatSystem combatSystem = new CombatSystem(player, monster);
@@ -61,40 +53,81 @@ public class BattleService {
 
     public GameSession executeTurn(String sessionId, int strategyIndex) {
         GameSession session = getSession(sessionId);
-        if (session.getCombatSystem().isCombatEnded()) {
+        if (session.isBattleEnded()) {
             return session;
         }
 
-        int hpBefore = session.getMonster().getHealth();
+        int monsterHpBefore = session.getMonster().getHealth();
         int playerHpBefore = session.getPlayer().getHealth();
 
-        List<String> messages = session.getCombatSystem().executeTurn(strategyIndex);
+        // 1. 结算玩家行动与可能的敌人反击
+        List<String> messages = new ArrayList<>(session.getCombatSystem().executeTurn(strategyIndex));
+
+        // 2. 无论双方是否死亡，本回合都算完成，消耗 1 点燃烧
+        session.getBurningState().consumeTurn();
         session.incrementTurn();
 
-        // 计算本回合伤害
-        int damageToMonster = hpBefore - session.getMonster().getHealth();
+        int damageToMonster = monsterHpBefore - session.getMonster().getHealth();
         int damageToPlayer = playerHpBefore - session.getPlayer().getHealth();
         session.getPlayer().setHealth(Math.max(0, session.getPlayer().getHealth()));
         session.accumulateDamage(damageToMonster, damageToPlayer);
 
-        // 战斗结束 → 持久化
-        if (session.getCombatSystem().isCombatEnded()) {
-            boolean playerWon = !session.getMonster().isAlive();
-            try {
-                statsService.recordBattleResult(session, playerWon,
-                        session.getTotalDamageDealt(), session.getTotalDamageTaken());
-                log.info("战斗结算持久化完成: sessionId={}, won={}", sessionId, playerWon);
-            } catch (Exception e) {
-                log.error("战斗结算持久化失败: sessionId={}", sessionId, e);
-            }
+        boolean extinguished = session.getBurningState().isExtinguished();
+        boolean monsterDead = !session.getMonster().isAlive();
+
+        if (extinguished) {
+            messages.add("🔥 燃烧耗尽，你燃尽了。");
+        }
+
+        // 3. 燃尽优先：即使敌人同时死亡也不发放胜利奖励
+        if (!extinguished && monsterDead) {
+            session.completeVictory();
+        }
+
+        session.recordMessages(messages);
+
+        // 4. 战斗结束 → 持久化（燃尽按战败记录）
+        if (session.isBattleEnded()) {
+            boolean playerWon = monsterDead && !extinguished;
+            persistQuietly(session, playerWon);
         }
 
         return session;
     }
 
-    public boolean tryFlee(String sessionId) {
+    public GameSession tryFlee(String sessionId) {
         GameSession session = getSession(sessionId);
-        return session.getCombatSystem().tryFlee(new Random());
+        if (session.isBattleEnded()) {
+            return session;
+        }
+
+        boolean success = session.getCombatSystem().tryFlee(new Random());
+
+        // 逃跑尝试无论成败都消耗 1 点燃烧
+        session.getBurningState().consumeTurn();
+        session.incrementTurn();
+
+        List<String> messages = new ArrayList<>();
+        messages.add(success
+                ? "🏃 逃跑成功，消耗 1 点燃烧。"
+                : "🏃 逃跑失败，消耗 1 点燃烧。");
+
+        if (session.getBurningState().isExtinguished()) {
+            messages.add("🔥 燃烧耗尽，你燃尽了。");
+        }
+
+        session.recordMessages(messages);
+        return session;
+    }
+
+    private void persistQuietly(GameSession session, boolean playerWon) {
+        try {
+            statsService.recordBattleResult(session, playerWon,
+                    session.getTotalDamageDealt(), session.getTotalDamageTaken());
+            log.info("战斗结算持久化完成: sessionId={}, won={}", session.getSessionId(), playerWon);
+        } catch (Exception e) {
+            log.error("战斗结算持久化失败: sessionId={}", session.getSessionId(), e);
+        }
     }
 
     public GameSession getSession(String sessionId) {

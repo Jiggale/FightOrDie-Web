@@ -57,15 +57,10 @@ public class CombatSystem {
             eventBus.publish(CombatEvent.criticalHit(monster, playerResult.getDamageToMonster()));
         }
 
-        // 检查怪物死亡
+        // 检查怪物死亡 —— 经验、金币与击杀记录由 GameSession.completeVictory() 统一发放
         if (!monster.isAlive()) {
             endCombat(true);
             messages.add("🏆 你击败了 " + monster.getName() + "！");
-            messages.add("获得 " + monster.getExperienceReward() + " 经验值和 " +
-                    monster.getGoldReward() + " 金币。");
-            player.gainExperience(monster.getExperienceReward());
-            player.addGold(monster.getGoldReward());
-            player.recordKill(monster.getName());
             eventBus.publish(CombatEvent.monsterKilled(monster));
             return messages;
         }

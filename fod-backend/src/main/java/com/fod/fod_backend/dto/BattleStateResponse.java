@@ -7,14 +7,17 @@ import java.util.List;
 
 /**
  * 战斗状态响应 DTO
+ * <p>
+ * 字段名 `log` 必须与前端 `fod-frontend/src/api/game.ts` 保持一致。
  */
 public record BattleStateResponse(
         String sessionId,
         PlayerInfo player,
         MonsterInfo monster,
+        BurningStateResponse burning,
         boolean combatEnded,
         boolean playerWon,
-        List<String> messages,
+        List<String> log,
         int turn
 ) {
     public record PlayerInfo(String name, int level, int health, int maxHealth,
