@@ -1,0 +1,90 @@
+name: 实施任务
+description: 为 CodeBuddy 准备一个范围明确、可审查的实现任务
+title: "[Task] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        此任务只有在用户确认范围后才能进入 `collab/ACTIVE_TASK.md` 并开始实施。
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 玩家目标
+      description: 完成这项后，玩家能够看到、理解或做什么？
+      placeholder: 玩家在一场战斗结算后，能够比较战斗的余烬收益与额外燃烧成本。
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 背景与理由
+      description: 为什么现在要做这项？它服务于哪个核心体验？
+    validations:
+      required: true
+
+  - type: textarea
+    id: confirmed_decisions
+    attributes:
+      label: 已确认决定
+      description: 只写来自 collab/DECISIONS.md 或用户明确确认的内容。
+      value: |
+        - 
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: 明确不做
+      description: 防止 agent 自行扩张范围。
+      value: |
+        - 不新增未批准的游戏系统。
+        - 不修改与本任务无关的界面或工程结构。
+        - 不自行改变剧情设定或数值。
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: 实现要求
+      description: 描述交互、数据、接口或内容要求，不在这里临时做新设计。
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 写成可验证的条件。
+      value: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: relevant_files
+    attributes:
+      label: 相关文件
+      description: 已知需要查看或修改的文件。
+    validations:
+      required: false
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: 必须运行的验证
+      description: 测试、构建、手动复现或截图要求。
+    validations:
+      required: true
+
+  - type: textarea
+    id: open_questions
+    attributes:
+      label: 待确认问题
+      description: 有阻塞问题时不要直接开工。
+    validations:
+      required: false
