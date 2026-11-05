@@ -18,6 +18,18 @@ const monsterHpPct = computed(() => {
   return Math.max(0, Math.round((store.monster.health / store.monsterMaxHealth) * 100))
 })
 
+const isExtinguished = computed(() => store.burning.flame <= 0)
+
+const endingLabel = computed(() => {
+  if (store.playerWon) return '胜利！'
+  return isExtinguished.value ? '燃尽' : '战败'
+})
+
+const endingIcon = computed(() => {
+  if (store.playerWon) return '🏆'
+  return isExtinguished.value ? '🔥' : '💀'
+})
+
 const actions = [
   { index: 1, label: '⚔️ 攻击', cls: 'bg-brand-600 hover:bg-brand-500' },
   { index: 2, label: '🛡️ 防御', cls: 'bg-indigo-600 hover:bg-indigo-500' },
@@ -125,6 +137,20 @@ async function rematch() {
         </div>
       </div>
 
+      <!-- 燃烧与余烬状态 -->
+      <div
+        class="glass-panel px-5 py-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm"
+        :class="isExtinguished ? 'border-brand-500/60' : ''"
+      >
+        <span :class="store.burning.flame <= 1 ? 'text-brand-400 font-semibold' : 'text-slate-200'">
+          🔥 燃烧 {{ store.burning.flame }}/{{ store.burning.maxFlame }}
+        </span>
+        <span class="text-slate-400">每回合 -{{ store.burning.burnPerTurn }}</span>
+        <span class="text-amber-300">余烬 {{ store.burning.ember }}</span>
+        <span v-if="!store.combatEnded" class="text-slate-500">胜利后 +5 余烬</span>
+        <span v-else class="text-slate-500">战斗已结束</span>
+      </div>
+
       <!-- 行动按钮 -->
       <div class="glass-panel p-5 flex flex-wrap gap-3 justify-center">
         <button
@@ -157,13 +183,22 @@ async function rematch() {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
     >
       <div class="glass-panel p-10 text-center max-w-md animate-float-up">
-        <div class="text-6xl mb-4">{{ store.playerWon ? '🏆' : '💀' }}</div>
+        <div class="text-6xl mb-4">{{ endingIcon }}</div>
         <h2 class="text-3xl font-bold mb-2" :class="store.playerWon ? 'text-emerald-400' : 'text-brand-400'">
-          {{ store.playerWon ? '胜利！' : '战败' }}
+          {{ endingLabel }}
         </h2>
-        <p class="text-slate-300 mb-6">
-          {{ store.playerWon ? '你击败了 ' + store.monster?.name + '，荣耀归于你的名字。' : '你倒下了，但传说仍在继续。' }}
+        <p class="text-slate-300 mb-4">
+          {{ store.playerWon
+            ? '你击败了 ' + store.monster?.name + '，荣耀归于你的名字。'
+            : isExtinguished
+              ? '燃烧耗尽，你化作了灰烬。'
+              : '你倒下了，但传说仍在继续。' }}
         </p>
+        <div class="mb-6 space-y-1 text-sm">
+          <p v-if="store.playerWon" class="text-amber-300">获得余烬 +5</p>
+          <p class="text-slate-400">当前燃烧 {{ store.burning.flame }}/{{ store.burning.maxFlame }}</p>
+          <p class="text-slate-400">当前余烬 {{ store.burning.ember }}</p>
+        </div>
         <div class="flex gap-3 justify-center">
           <button class="game-btn bg-brand-600 hover:bg-brand-500 text-white" @click="rematch">⚔️ 再战</button>
           <button class="game-btn bg-slate-700 hover:bg-slate-600 text-white" @click="backHome">🏆 排行榜</button>

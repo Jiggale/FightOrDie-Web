@@ -6,6 +6,7 @@ import {
   getLeaderboard,
   type BattleCreated,
   type BattleState,
+  type BurningState,
   type PlayerStats,
 } from '../api/game'
 
@@ -16,6 +17,7 @@ export const useGameStore = defineStore('game', {
     player: null as BattleState['player'] | null,
     monster: null as BattleState['monster'] | null,
     monsterMaxHealth: 1 as number,
+    burning: { flame: 0, maxFlame: 6, ember: 0, burnPerTurn: 1 } as BurningState,
     strategies: {} as Record<number, string>,
     battleLog: [] as string[],
     combatEnded: false,
@@ -36,6 +38,7 @@ export const useGameStore = defineStore('game', {
         this.strategies = created.strategies
         this.monster = created.monster
         this.monsterMaxHealth = created.monster.health || 1
+        this.burning = created.burning ?? this.burning
         this.player = null
         this.battleLog = ['遭遇 ' + created.monster.name + '！战斗开始！']
         this.combatEnded = false
@@ -72,6 +75,7 @@ export const useGameStore = defineStore('game', {
     applyState(state: BattleState) {
       this.player = state.player
       this.monster = state.monster
+      this.burning = state.burning ?? this.burning
       this.combatEnded = state.combatEnded
       this.playerWon = state.playerWon
       this.turn = state.turn

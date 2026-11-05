@@ -20,9 +20,17 @@ export interface Monster {
   aiType: string
 }
 
+export interface BurningState {
+  flame: number
+  maxFlame: number
+  ember: number
+  burnPerTurn: number
+}
+
 export interface BattleState {
   player: Player
   monster: Monster
+  burning: BurningState
   combatEnded: boolean
   playerWon: boolean
   turn: number
@@ -32,6 +40,7 @@ export interface BattleState {
 export interface BattleCreated {
   sessionId: string
   monster: Monster
+  burning: BurningState
   strategies: Record<number, string>
 }
 
