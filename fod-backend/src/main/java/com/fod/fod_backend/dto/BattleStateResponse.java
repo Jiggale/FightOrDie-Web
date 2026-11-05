@@ -9,9 +9,11 @@ import java.util.List;
  * 战斗状态响应 DTO
  * <p>
  * 字段名 `log` 必须与前端 `fod-frontend/src/api/game.ts` 保持一致。
+ * `battleOutcome` 是唯一的结局判定来源，前端不得用布尔值组合推断结局。
  */
 public record BattleStateResponse(
         String sessionId,
+        BattleOutcome battleOutcome,
         PlayerInfo player,
         MonsterInfo monster,
         BurningStateResponse burning,

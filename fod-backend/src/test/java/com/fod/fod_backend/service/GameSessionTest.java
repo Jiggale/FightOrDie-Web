@@ -2,6 +2,7 @@ package com.fod.fod_backend.service;
 
 import com.fod.entity.Monster;
 import com.fod.entity.Player;
+import com.fod.fod_backend.dto.BattleOutcome;
 import com.fod.system.combat.CombatSystem;
 import org.junit.jupiter.api.Test;
 
@@ -37,13 +38,15 @@ class GameSessionTest {
         assertEquals(0, session.getBurningState().getEmber());
         assertEquals(1, session.getBurningState().getBurnPerTurn());
         assertFalse(session.isBattleEnded());
+        assertEquals(BattleOutcome.ONGOING, session.getBattleOutcome());
     }
 
     @Test
-    void completeVictoryAddsEmberOnce() {
+    void completeVictoryReturnsTrueAndAwardsOnce() {
         GameSession session = newSession();
+        session.getMonster().takeDamage(999);
 
-        session.completeVictory();
+        assertTrue(session.completeVictory());
 
         assertEquals(5, session.getBurningState().getEmber());
         assertEquals(20, session.getPlayer().getExperience());
@@ -52,17 +55,58 @@ class GameSessionTest {
     }
 
     @Test
-    void completeVictoryIsIdempotent() {
+    void completeVictoryReturnsFalseWhenRepeated() {
         GameSession session = newSession();
+        session.getMonster().takeDamage(999);
 
-        session.completeVictory();
-        session.completeVictory();
-        session.completeVictory();
+        assertTrue(session.completeVictory());
+        assertFalse(session.completeVictory());
+        assertFalse(session.completeVictory());
 
         assertEquals(5, session.getBurningState().getEmber());
         assertEquals(20, session.getPlayer().getExperience());
         assertEquals(10, session.getPlayer().getGold());
         assertEquals(1, session.getPlayer().getKillCount("夺烬者"));
+    }
+
+    @Test
+    void completeVictoryRejectsLivingMonster() {
+        GameSession session = newSession();
+
+        assertFalse(session.completeVictory());
+
+        assertEquals(0, session.getBurningState().getEmber());
+        assertEquals(0, session.getPlayer().getExperience());
+        assertEquals(0, session.getPlayer().getGold());
+    }
+
+    @Test
+    void completeVictoryRejectsExtinguishedPlayer() {
+        GameSession session = newSession();
+        session.getMonster().takeDamage(999);
+        for (int i = 0; i < 5; i++) {
+            session.getBurningState().consumeTurn();
+        }
+
+        assertFalse(session.completeVictory());
+
+        assertEquals(0, session.getBurningState().getEmber());
+        assertEquals(0, session.getPlayer().getExperience());
+    }
+
+    @Test
+    void victoryAndExtinguishingInSameTurnAwardsNothing() {
+        GameSession session = newSession();
+        session.getMonster().takeDamage(999);
+        for (int i = 0; i < 5; i++) {
+            session.getBurningState().consumeTurn();
+        }
+
+        assertEquals(BattleOutcome.EXTINGUISHED, session.getBattleOutcome());
+        assertFalse(session.completeVictory());
+        assertEquals(0, session.getBurningState().getEmber());
+        assertEquals(0, session.getPlayer().getGold());
+        assertEquals(0, session.getPlayer().getKillCount("夺烬者"));
     }
 
     @Test
@@ -88,6 +132,7 @@ class GameSessionTest {
 
         assertTrue(session.isExtinguished());
         assertTrue(session.isBattleEnded());
+        assertEquals(BattleOutcome.EXTINGUISHED, session.getBattleOutcome());
     }
 
     @Test
@@ -101,5 +146,16 @@ class GameSessionTest {
 
         assertTrue(combat.isCombatEnded());
         assertTrue(session.isBattleEnded());
+        assertEquals(BattleOutcome.VICTORY, session.getBattleOutcome());
+    }
+
+    @Test
+    void outcomeIsFledOnlyAfterMarkingFlee() {
+        GameSession session = newSession();
+        assertEquals(BattleOutcome.ONGOING, session.getBattleOutcome());
+
+        session.markFled();
+
+        assertEquals(BattleOutcome.FLED, session.getBattleOutcome());
     }
 }

@@ -32,6 +32,7 @@ public class BattleController {
 
         var response = new BattleCreatedResponse(
                 session.getSessionId(),
+                session.getBattleOutcome(),
                 BattleStateResponse.PlayerInfo.from(session.getPlayer()),
                 BattleStateResponse.MonsterInfo.from(session.getMonster()),
                 BurningStateResponse.from(session.getBurningState()),
@@ -71,21 +72,19 @@ public class BattleController {
 
     /**
      * 统一的战斗状态映射。
-     * 结束判定统一走 {@link GameSession#isBattleEnded()}，燃尽按战败呈现。
+     * 结局统一来自 {@link GameSession#getBattleOutcome()}，不在此处用布尔值组合推断。
      */
     private BattleStateResponse toStateResponse(GameSession session) {
-        boolean extinguished = session.isExtinguished();
-        boolean playerWon = session.isBattleEnded()
-                && !session.getMonster().isAlive()
-                && !extinguished;
+        BattleOutcome outcome = session.getBattleOutcome();
 
         return new BattleStateResponse(
                 session.getSessionId(),
+                outcome,
                 BattleStateResponse.PlayerInfo.from(session.getPlayer()),
                 BattleStateResponse.MonsterInfo.from(session.getMonster()),
                 BurningStateResponse.from(session.getBurningState()),
                 session.isBattleEnded(),
-                playerWon,
+                outcome == BattleOutcome.VICTORY,
                 session.getLastMessages(),
                 session.getTurn());
     }

@@ -1,6 +1,9 @@
 package com.fod.fod_backend.service;
 
+import com.fod.fod_backend.dto.BattleOutcome;
 import org.junit.jupiter.api.Test;
+
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -9,6 +12,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class BattleServiceTest {
+
+    /** 固定结果的随机源：0.0 必定逃跑成功，0.9 必定失败。 */
+    private static Random fixedRandom(double value) {
+        return new Random() {
+            @Override
+            public double nextDouble() {
+                return value;
+            }
+        };
+    }
 
     private BattleService newService() {
         return new BattleService(mock(StatsService.class));
@@ -26,6 +39,7 @@ class BattleServiceTest {
 
         assertEquals(4, session.getBurningState().getFlame());
         assertFalse(session.isBattleEnded());
+        assertEquals(BattleOutcome.ONGOING, session.getBattleOutcome());
     }
 
     @Test
@@ -42,6 +56,7 @@ class BattleServiceTest {
         assertTrue(session.isBattleEnded());
         assertFalse(session.isExtinguished());
         assertFalse(session.getMonster().isAlive());
+        assertEquals(BattleOutcome.VICTORY, session.getBattleOutcome());
         assertEquals(5, session.getBurningState().getEmber());
         assertEquals(5 - session.getTurn(), session.getBurningState().getFlame());
     }
@@ -71,6 +86,47 @@ class BattleServiceTest {
         assertEquals(turnAfter, session.getTurn());
         assertEquals(expAfter, session.getPlayer().getExperience());
         assertEquals(goldAfter, session.getPlayer().getGold());
+    }
+
+    @Test
+    void successfulFleeReturnsFledOutcome() {
+        BattleService service = newService();
+        GameSession session = service.createBattle("hero");
+
+        service.tryFlee(session.getSessionId(), fixedRandom(0.0));
+
+        assertTrue(session.isBattleEnded());
+        assertEquals(BattleOutcome.FLED, session.getBattleOutcome());
+        assertEquals(4, session.getBurningState().getFlame());
+        assertEquals(0, session.getBurningState().getEmber());
+    }
+
+    @Test
+    void failedFleeStaysOngoing() {
+        BattleService service = newService();
+        GameSession session = service.createBattle("hero");
+
+        service.tryFlee(session.getSessionId(), fixedRandom(0.9));
+
+        assertFalse(session.isBattleEnded());
+        assertEquals(BattleOutcome.ONGOING, session.getBattleOutcome());
+        assertEquals(4, session.getBurningState().getFlame());
+    }
+
+    @Test
+    void fleeThatConsumesLastFlameReturnsExtinguished() {
+        BattleService service = newService();
+        GameSession session = service.createBattle("hero");
+        for (int i = 0; i < 4; i++) {
+            session.getBurningState().consumeTurn();
+        }
+        assertEquals(1, session.getBurningState().getFlame());
+
+        service.tryFlee(session.getSessionId(), fixedRandom(0.0));
+
+        assertEquals(BattleOutcome.EXTINGUISHED, session.getBattleOutcome());
+        assertEquals(0, session.getBurningState().getFlame());
+        assertEquals(0, session.getBurningState().getEmber());
     }
 
     @Test

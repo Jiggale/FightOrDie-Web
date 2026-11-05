@@ -21,6 +21,7 @@ public class BattleService {
     private static final Logger log = LoggerFactory.getLogger(BattleService.class);
     private final ConcurrentHashMap<String, GameSession> sessions = new ConcurrentHashMap<>();
     private final StatsService statsService;
+    private final Random random = new Random();
 
     public BattleService(StatsService statsService) {
         this.statsService = statsService;
@@ -96,14 +97,25 @@ public class BattleService {
     }
 
     public GameSession tryFlee(String sessionId) {
+        return tryFlee(sessionId, random);
+    }
+
+    /**
+     * 尝试逃跑。
+     * <p>
+     * 无论成功或失败都消耗 1 点燃烧；若该次消耗导致燃烧归零，结局为 {@code EXTINGUISHED}；
+     * 否则成功逃跑不再发奖并结束战斗，结局为 {@code FLED}。
+     *
+     * @param random 逃跑成功率的随机源，便于测试注入
+     */
+    public GameSession tryFlee(String sessionId, Random random) {
         GameSession session = getSession(sessionId);
         if (session.isBattleEnded()) {
             return session;
         }
 
-        boolean success = session.getCombatSystem().tryFlee(new Random());
+        boolean success = session.getCombatSystem().tryFlee(random);
 
-        // 逃跑尝试无论成败都消耗 1 点燃烧
         session.getBurningState().consumeTurn();
         session.incrementTurn();
 
@@ -112,8 +124,11 @@ public class BattleService {
                 ? "🏃 逃跑成功，消耗 1 点燃烧。"
                 : "🏃 逃跑失败，消耗 1 点燃烧。");
 
-        if (session.getBurningState().isExtinguished()) {
+        boolean extinguished = session.getBurningState().isExtinguished();
+        if (extinguished) {
             messages.add("🔥 燃烧耗尽，你燃尽了。");
+        } else if (success) {
+            session.markFled();
         }
 
         session.recordMessages(messages);
