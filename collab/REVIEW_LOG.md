@@ -82,3 +82,40 @@
 
 - 是否让 CodeBuddy 修复 3 个阻塞项并补测试后再次提交审查。
 - 是否将协作规则、任务包、规格和计划一并提交到本分支。
+
+## REVIEW-002 / TASK-001 返修
+
+- 日期：2026-11-06
+- 审查对象：`feat/task-001-burning-core`，提交 `7b62408..fbb150e`
+- Pull Request：https://github.com/Jiggale/FightOrDie-Web/pull/1
+- 结论：**通过，可以合并**
+
+### 通过项
+
+- 上一轮的三个阻塞项均已修复。
+- `BattleOutcome` 统一了 `ONGOING`、`VICTORY`、`DEFEATED`、`EXTINGUISHED` 和 `FLED`，前端不再通过布尔值猜测结局。
+- 成功逃跑显示“已撤退”，不再显示为战败。
+- 开始战斗响应中的 `player` 已进入 TypeScript 类型和 Pinia store，第一帧即可显示玩家数据。
+- `GameSession.completeVictory()` 已自行校验敌人死亡和未燃尽，并返回是否真正发奖。
+- 已覆盖胜利与燃尽同回合、成功逃跑、失败逃跑、逃跑导致燃尽等测试。
+- 协作规则、规格、计划、审查记录和 GitHub 模板均已进入当前分支。
+
+### 验证证据
+
+- 后端：`fod-backend\mvnw.cmd test`
+- 结果：`Tests run: 32, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`
+- 前端：`vue-tsc -b --force` 退出码 0
+- CodeBuddy 交接记录：Vite 构建通过，并在浏览器中确认“胜利 / 燃尽 / 已撤退”三种界面。
+- Codex 环境仍受 esbuild 子进程权限限制，未独立复跑 Vite 产物构建。
+
+### 非阻塞问题
+
+1. `BattleOutcome` 位于 DTO 包，但由 service 层依赖；后续可移动到领域包。
+2. `GameSession.isBattleEnded()` 未包含 `fled` 标记；当前调用路径会先结束战斗，因此目前不影响行为。
+3. `playerWon` 与 `battleOutcome` 同时存在，存在信息重复；当前为兼容旧接口保留。
+4. PR 目前仍是 `Checks 0`，需要后续增加 GitHub Actions。
+5. GitHub 模板和部分 Markdown 存在行尾空格，不影响运行。
+
+### 最终判断
+
+Spec：通过。Standards：无阻塞问题。当前实现达到 TASK-001 的合并标准。
