@@ -65,9 +65,33 @@ public class Player {
 
     public boolean isAlive() { return health > 0; }
 
-    public void takeDamage(int damage) {
-        int actualDamage = Math.max(damage - getEffectiveDefense(), 0);
+    /**
+     * 承受一次伤害，返回实际扣除的生命值。
+     * 防御只在此处生效一次，最低扣除 1 点。
+     */
+    public int takeDamage(int rawDamage) {
+        return applyDamage(rawDamage, 0);
+    }
+
+    /**
+     * 承受一次伤害，先按百分比减伤，再扣防御，最低扣除 1 点。
+     *
+     * @param reductionPercent 减伤百分比，取值 0 到 100
+     * @return 实际扣除的生命值
+     */
+    public int takeDamage(int rawDamage, int reductionPercent) {
+        if (reductionPercent < 0 || reductionPercent > 100) {
+            throw new IllegalArgumentException("减伤百分比必须在 0 到 100 之间: " + reductionPercent);
+        }
+        return applyDamage(rawDamage, reductionPercent);
+    }
+
+    private int applyDamage(int rawDamage, int reductionPercent) {
+        int afterReduction = Math.max(rawDamage, 0) * (100 - reductionPercent) / 100;
+        int actualDamage = Math.max(afterReduction - getEffectiveDefense(), 1);
+        int healthBefore = health;
         health = Math.max(health - actualDamage, 0);
+        return healthBefore - health;
     }
 
     public void heal(int amount) { health = Math.min(health + amount, maxHealth); }

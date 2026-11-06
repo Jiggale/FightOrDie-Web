@@ -4,23 +4,19 @@ import com.fod.entity.Monster;
 import com.fod.entity.Player;
 
 /**
- * 防御策略 - 减伤50%
+ * 防御策略 - 自身不造成伤害，仅标志本回合进入防御姿态。
+ * <p>
+ * 实际的 50% 减伤由 {@link AIActionStrategy} 在结算敌人行动时生效，
+ * 具体是否处于防御姿态由 {@link CombatSystem} 依据策略序号判定。
  */
 public class DefenseStrategy implements CombatStrategy {
 
-    private static final double DEFENSE_REDUCTION = 0.5;
-
     @Override
     public CombatResult execute(Player player, Monster monster) {
-        int monsterDamage = Math.max(
-                (int) (monster.getAttack() - player.getEffectiveDefense() * (1 + DEFENSE_REDUCTION)), 1);
-        player.takeDamage(monsterDamage);
-
         return new CombatResult.Builder()
                 .damageToMonster(0)
-                .damageToPlayer(monsterDamage)
-                .description("你进入防御姿态，受到 " + monsterDamage + " 点伤害（减伤 " +
-                        (int) (DEFENSE_REDUCTION * 100) + "%）。")
+                .damageToPlayer(0)
+                .description("你进入防御姿态，准备承受攻击。")
                 .build();
     }
 
