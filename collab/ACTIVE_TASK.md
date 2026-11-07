@@ -1,60 +1,52 @@
 # 当前任务
 
-## TASK-001：燃烧生存核心
+## TASK-002：GitHub Actions CI
 
 ### 状态
 
-**返修已完成，Codex 复审通过，等待用户合并 PR #1。**
+**已批准，等待 CodeBuddy 实施。**
 
 ### 目标
 
-在现有战斗系统上打通最小闭环：每回合消耗燃烧、胜利获得余烬、战斗页正确显示两种资源。
+为 `main` 的推送和 Pull Request 增加自动验证，使以下两步在 GitHub 上稳定运行：
 
-### 必读文件
+1. 后端完整测试；
+2. 前端生产构建。
 
-- `docs/superpowers/specs/2026-11-05-burning-survival-core-design.md`
-- `docs/superpowers/plans/2026-11-05-burning-survival-core.md`
-- `collab/DECISIONS.md`
+### 分支
 
-### 实施方式
+`task-002-ci`
 
-1. 继续使用分支 `feat/task-001-burning-core` 和 PR #1，不新开分支。
-2. 按最新规格和计划完成返修。
-3. 每个逻辑修复补齐测试，并提交到当前分支。
-4. 不实现剧情、Ink、非致命路线或契灵承诺；它们属于后续任务。
-5. 完成后更新 `collab/HANDOFF.md` 并推送，让 PR #1 自动更新。
+### 实施要求
 
-### 返修结果
+1. 新建 `.github/workflows/ci.yml`。
+2. 工作流在 `push` 到 `main` 和针对 `main` 的 `pull_request` 时运行。
+3. 后端任务使用 Ubuntu、Java 23 和 MySQL 8 服务容器。
+4. 后端通过 `fod-backend/init.sql` 初始化测试数据库。
+5. 后端执行 `fod-backend/mvnw test`，`mvnw` 在 CI 中必须先补执行权限。
+6. 前端使用 Node.js 22，执行 `npm ci` 和 `npm run build`。
+7. 开启 Maven 与 npm 缓存，减少后续执行时间。
+8. 设置并发取消：同一分支出现新提交时，取消旧的 CI 运行。
+9. CI 必须使用测试专用环境变量，不得提交真实密码或 JWT 密钥。
 
-1. 已增加统一 `BattleOutcome`，成功逃跑显示“已撤退”。
-2. 已从开始战斗响应初始化玩家数据，第一帧显示 HP、攻击和防御。
-3. `GameSession.completeVictory()` 已自行检查胜利条件与幂等性。
-4. 已补齐胜利与燃尽同回合、成功逃跑、失败逃跑和逃跑导致燃尽的测试。
+### 明确不做
 
-### 合并后事项
+- 不修改业务代码、接口、数值或页面。
+- 不部署服务器。
+- 不制作 Docker 镜像发布流程。
+- 不添加 E2E、视觉回归或 Playwright。
+- 不把数据库密码写入仓库文件。
 
-- 配置 GitHub Actions，在 PR 上自动运行后端测试和前端构建。
-- 下一任务再处理 `BattleOutcome` 的领域层位置、重复的 `playerWon` 字段和会话回收，不阻塞本次合并。
+### 验收标准
 
-### 验收
+- [ ] PR 页面出现后端测试和前端构建检查。
+- [ ] 后端任务启动 MySQL 8 后完成数据库初始化。
+- [ ] 后端 32 项测试全部通过。
+- [ ] 前端 `npm ci` 和 `npm run build` 通过。
+- [ ] 失败日志能明确指出是后端、数据库还是前端构建失败。
+- [ ] 不包含真实密钥。
+- [ ] `collab/HANDOFF.md` 记录运行结果和 PR 链接。
 
-以计划文件的“Global Constraints”“Review Focus”和每个 Task 的步骤为准。任何未覆盖的验收项都必须明确报告，不得口头声明完成。
+### 交付
 
-### 禁止事项
-
-- 不修改与本任务无关的排行榜、认证、数据库结构或视觉主题。
-- 不增加新依赖，除非计划明确要求。
-- 不自行修复未被测试覆盖的架构问题。
-- 发现阻塞时停止实现，把问题写入 `collab/OPEN_QUESTIONS.md`。
-
-## 完成后的交接要求
-
-CodeBuddy 完成实现后必须更新 `collab/HANDOFF.md`，包括：
-
-- 实现目标；
-- 改动文件；
-- 运行过的命令；
-- 测试结果；
-- 截图或可复现路径；
-- 已知问题；
-- 与任务包不一致或无法完成的部分。
+CodeBuddy 在 `task-002-ci` 分支完成后推送并创建 PR，不直接合并 `main`。
