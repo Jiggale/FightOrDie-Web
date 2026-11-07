@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支出现新提交时，取消仍在运行的旧 CI
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend · mvnw test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # 仅用于 CI 的临时凭据，不是生产或本地真实配置
+    env:
+      DB_NAME: fod
+      DB_USERNAME: fod_ci
+      DB_PASSWORD: ci_only_test_password
+      JWT_SECRET: ci-only-test-jwt-secret-key-with-at-least-32-bytes
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci_only_root_password
+          MYSQL_DATABASE: fod
+          MYSQL_USER: fod_ci
+          MYSQL_PASSWORD: ci_only_test_password
+        ports:
+          - 3306:3306
+        # mysqladmin ping 在鉴权失败时仍返回 0（服务已就绪），因此无需在健康检查中写密码
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 23
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '23'
+          cache: maven
+          cache-dependency-path: fod-backend/pom.xml
+
+      - name: Make mvnw executable
+        run: chmod +x fod-backend/mvnw
+
+      - name: Ensure MySQL client
+        run: command -v mysql >/dev/null || { sudo apt-get update && sudo apt-get install -y mysql-client; }
+
+      - name: Wait for MySQL and initialize schema
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 60); do
+            if mysql -h 127.0.0.1 -u "$DB_USERNAME" -p"$DB_PASSWORD" "$DB_NAME" -e "SELECT 1" >/dev/null 2>&1; then
+              echo "MySQL is up and CI credentials are accepted."
+              ready=1
+              break
+            fi
+            echo "Waiting for MySQL ($i/60)..."
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "::error::MySQL did not become ready in time. Check the mysql service container logs."
+            exit 1
+          fi
+          mysql -h 127.0.0.1 -u "$DB_USERNAME" -p"$DB_PASSWORD" "$DB_NAME" < fod-backend/init.sql
+          echo "Tables after init:"
+          mysql -h 127.0.0.1 -u "$DB_USERNAME" -p"$DB_PASSWORD" "$DB_NAME" -N -e "SHOW TABLES"
+
+      - name: Run backend tests
+        working-directory: fod-backend
+        run: ./mvnw test
+
+  frontend:
+    name: Frontend · npm run build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: fod-frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: fod-frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: fod-frontend
+        run: npm run build
