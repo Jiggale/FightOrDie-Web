@@ -7,8 +7,8 @@
 
 ## 当前状态
 
-TASK-002（GitHub Actions CI）已实现，本地可验证项全部通过；
-CI 在 GitHub 上的实际执行结果需推送后在 PR 页面确认，尚未取得首次运行证据。
+TASK-002（GitHub Actions CI）已实现，本地可验证项全部通过，
+并已在 PR #2 上完成首次真实运行：**All checks have passed · 2 successful checks**，无冲突。
 
 ## 任务编号
 
@@ -88,13 +88,29 @@ cd fod-frontend && npm run build
 | lockfile 同步（`npm ci` 的前提） | 通过；`lockfileVersion 3`，dependencies 4 项、devDependencies 9 项与 package.json 完全一致 |
 | 后端测试 | `Tests run: 32, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS` |
 | 前端构建 | `vue-tsc -b` 退出码 0；`vite build` `97 modules transformed`，`✓ built in 7.49s` |
+| **GitHub Actions 首次运行（PR #2）** | **All checks have passed · 2 successful checks**；无与 base 分支的冲突 |
+
+### 首次 CI 运行结论
+
+PR #2（`https://github.com/Jiggale/FightOrDie-Web/pull/2`）页面显示：
+
+```text
+✔ All checks have passed
+  2 successful checks
+✔ No conflicts with base branch
+```
+
+workflow 中定义的两个 job 即这两个检查：`Backend · mvnw test` 与 `Frontend · npm run build`。
+说明 MySQL 8 服务容器启动、`init.sql` 初始化、JDK 23 环境与 `mvnw test`、
+以及 Node 22 下的 `npm ci` + `npm run build` 均在 GitHub 托管运行器上正常工作。
 
 ### 未能本地验证的部分
 
-- GitHub Actions 的 service container（MySQL 8）无法在本地复现，CI 首次实际运行需推送后观察。
+- GitHub Actions 的 service container（MySQL 8）无法在本地复现；此项已由 PR #2 的首次托管运行覆盖。
 - 本地沙箱的安全删除策略拦截了 `npm ci` 的批量删除（一次性删除 500+ 文件被阻断），
   因此本地改用「静态校验 lockfile 同步 + `npm run build`」来覆盖同一条路径；
   中断的 `npm ci` 曾破坏本地 `node_modules`，已用 `npm install` 修复，仓库文件未受影响。
+  而 `npm ci` 本身已由 PR #2 的 CI 实际通过，本地缺口的风险已消除。
 
 ## 可复现路径
 
@@ -110,9 +126,10 @@ cd fod-frontend && npm run build
 
 ## 已知问题
 
-1. **CI 尚未在 GitHub 上真实运行过。** 本地能验证的只有 YAML 合法性、lockfile 同步、后端测试与前端构建；
-   service container 行为、`actions/setup-java` 对 JDK 23 的可用性、`mysql-client` 是否预装，
-   都必须在推送后由首次 CI 运行确认。若失败，最可能需要调整的是 MySQL 就绪时序或客户端安装步骤。
+1. **CI 已首次运行通过，但仅验证了成功路径。** PR #2 的 2 个检查全绿，
+   证明 service container、JDK 23、`npm ci`、schema 初始化均可正常工作；
+   尚未验证的是失败路径（例如故意让某个测试失败时，日志能否清晰定位到具体环节）。
+   该验证已作为「可复现路径」第 5 条留给后续确认，非本次阻塞项。
 2. **`timeout-minutes` 属实施方补充项。** 任务要求未明确列出，但可避免工作流挂起占用 6 小时默认上限，
    已在此记录以便审查。
 3. **`permissions: contents: read` 属实施方补充项。** 用于收紧默认令牌权限，不改变行为。
